@@ -1345,30 +1345,45 @@ export const useSettingsStore = create<SettingsState>()(
 
         // Audio actions
         setTTSProvider: (providerId) =>
-          set((state) => {
-            // If switching provider, set default voice for that provider
-            const shouldUpdateVoice = state.ttsProviderId !== providerId;
-            const defaultVoice = isCustomTTSProvider(providerId)
-              ? state.ttsProvidersConfig[providerId]?.customVoices?.[0]?.id || 'default'
-              : DEFAULT_TTS_VOICES[providerId as BuiltInTTSProviderId] || 'default';
-            return {
-              ttsProviderId: providerId,
-              ...(shouldUpdateVoice && { ttsVoice: defaultVoice }),
-              ...(providerId === 'qwen-tts' &&
-              isQwenCatalogVoice(defaultVoice) &&
-              isQwenVoiceCloneModel(state.ttsProvidersConfig['qwen-tts']?.modelId)
-                ? {
-                    ttsProvidersConfig: {
-                      ...state.ttsProvidersConfig,
-                      'qwen-tts': {
-                        ...state.ttsProvidersConfig['qwen-tts'],
-                        modelId: TTS_PROVIDERS['qwen-tts'].defaultModelId,
-                      },
-                    },
-                  }
-                : {}),
-            };
-          }),
+  set((state) => {
+    // If switching provider, set default voice for that provider
+    const shouldUpdateVoice = state.ttsProviderId !== providerId;
+    const defaultVoice = isCustomTTSProvider(providerId)
+      ? state.ttsProvidersConfig[providerId]?.customVoices?.[0]?.id || 'default'
+      : DEFAULT_TTS_VOICES[providerId as BuiltInTTSProviderId] || 'default';
+
+    return {
+      ttsProviderId: providerId,
+
+      ...(shouldUpdateVoice && { ttsVoice: defaultVoice }),
+
+      ...(providerId === 'browser-native-tts'
+        ? {
+            ttsProvidersConfig: {
+              ...state.ttsProvidersConfig,
+              'browser-native-tts': {
+                ...state.ttsProvidersConfig['browser-native-tts'],
+                enabled: true,
+              },
+            },
+          }
+        : {}),
+
+      ...(providerId === 'qwen-tts' &&
+      isQwenCatalogVoice(defaultVoice) &&
+      isQwenVoiceCloneModel(state.ttsProvidersConfig['qwen-tts']?.modelId)
+        ? {
+            ttsProvidersConfig: {
+              ...state.ttsProvidersConfig,
+              'qwen-tts': {
+                ...state.ttsProvidersConfig['qwen-tts'],
+                modelId: TTS_PROVIDERS['qwen-tts'].defaultModelId,
+              },
+            },
+          }
+        : {}),
+    };
+  }),
 
         setTTSVoice: (voice) =>
           set((state) => ({
@@ -1635,7 +1650,21 @@ export const useSettingsStore = create<SettingsState>()(
           set({ videoGenerationEnabled: enabled });
         },
         setReviewOutlineEnabled: (enabled) => set({ reviewOutlineEnabled: enabled }),
-        setTTSEnabled: (enabled) => set({ ttsEnabled: enabled }),
+        setTTSEnabled: (enabled) =>
+  set((state) => ({
+    ttsEnabled: enabled,
+    ...(state.ttsProviderId === 'browser-native-tts'
+      ? {
+          ttsProvidersConfig: {
+            ...state.ttsProvidersConfig,
+            'browser-native-tts': {
+              ...state.ttsProvidersConfig['browser-native-tts'],
+              enabled,
+            },
+          },
+        }
+      : {}),
+  })),
         setASREnabled: (enabled) => set({ asrEnabled: enabled }),
 
         // Custom audio provider actions
