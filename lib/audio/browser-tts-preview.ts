@@ -32,13 +32,24 @@ const VI_BROAD_RE = /[ăâêôĂÂÊÔ]/g;
 const VI_BROAD_THRESHOLD = 0.02;
 
 /** Language tag for a narration chunk: zh-CN, vi-VN, or en-US fallback. */
+/** Language tag for a narration chunk. */
 export function detectSpeechLang(text: string): string {
-  if (!text) return 'en-US';
-  const cjkRatio = (text.match(/[\u4e00-\u9fff\u3400-\u4dbf]/g) || []).length / text.length;
+  if (!text) return 'pt-BR';
+
+  const cjkRatio =
+    (text.match(/[\u4e00-\u9fff\u3400-\u4dbf]/g) || []).length / text.length;
+
   if (cjkRatio > CJK_LANG_THRESHOLD) return 'zh-CN';
   if (VI_DECIDER_RE.test(text)) return 'vi-VN';
-  if ((text.match(VI_BROAD_RE) || []).length / text.length > VI_BROAD_THRESHOLD) return 'vi-VN';
-  return 'en-US';
+
+  if (
+    (text.match(VI_BROAD_RE) || []).length / text.length >
+    VI_BROAD_THRESHOLD
+  ) {
+    return 'vi-VN';
+  }
+
+  return 'pt-BR';
 }
 
 export function isBrowserTTSAbortError(error: unknown): boolean {
