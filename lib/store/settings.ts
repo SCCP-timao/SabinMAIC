@@ -1344,43 +1344,49 @@ export const useSettingsStore = create<SettingsState>()(
         setChatAreaWidth: (width) => set({ chatAreaWidth: width }),
 
         // Audio actions
+        
         setTTSProvider: (providerId) =>
-  set((state) => {
-    // If switching provider, set default voice for that provider
-    const shouldUpdateVoice = state.ttsProviderId !== providerId;
-    const defaultVoice = isCustomTTSProvider(providerId)
-      ? state.ttsProvidersConfig[providerId]?.customVoices?.[0]?.id || 'default'
-      : DEFAULT_TTS_VOICES[providerId as BuiltInTTSProviderId] || 'default';
+          set((state) => {
+            // If switching provider, set default voice for that provider
+            const shouldUpdateVoice = state.ttsProviderId !== providerId;
+            const defaultVoice = isCustomTTSProvider(providerId)
+              ? state.ttsProvidersConfig[providerId]?.customVoices?.[0]?.id || 'default'
+              : DEFAULT_TTS_VOICES[providerId as BuiltInTTSProviderId] || 'default';
 
-    return {
-      ttsProviderId: providerId,
+            return {
+              ttsProviderId: providerId,
 
-      ...(shouldUpdateVoice && { ttsVoice: defaultVoice }),
+              ...(shouldUpdateVoice && { ttsVoice: defaultVoice }),
 
-      ...(providerId === 'browser-native-tts'
-        ? {
-            ttsProvidersConfig: {
-              ...state.ttsProvidersConfig,
-              'browser-native-tts': {
-                ...state.ttsProvidersConfig['browser-native-tts'],
-                enabled: true,
-              },
-            },
-          }
-        : {}),
+              ...(providerId === 'browser-native-tts'
+                ? {
+                    ttsEnabled: true,
+                    ttsProvidersConfig: {
+                      ...state.ttsProvidersConfig,
+                      'browser-native-tts': {
+                        ...state.ttsProvidersConfig['browser-native-tts'],
+                        enabled: true,
+                      },
+                    },
+                  }
+                : {}),
 
-      ...(providerId === 'browser-native-tts'
-  ? {
-      ttsEnabled: true,
-      ttsProvidersConfig: {
-        ...state.ttsProvidersConfig,
-        'browser-native-tts': {
-          ...state.ttsProvidersConfig['browser-native-tts'],
-          enabled: true,
-        },
-      },
-    }
-  : {}),
+              ...(providerId === 'qwen-tts' &&
+              isQwenCatalogVoice(defaultVoice) &&
+              isQwenVoiceCloneModel(state.ttsProvidersConfig['qwen-tts']?.modelId)
+                ? {
+                    ttsProvidersConfig: {
+                      ...state.ttsProvidersConfig,
+                      'qwen-tts': {
+                        ...state.ttsProvidersConfig['qwen-tts'],
+                        modelId: TTS_PROVIDERS['qwen-tts'].defaultModelId,
+                      },
+                    },
+                  }
+                : {}),
+            };
+          }),
+
 
         setTTSVoice: (voice) =>
           set((state) => ({
