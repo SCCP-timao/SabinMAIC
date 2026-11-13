@@ -1369,21 +1369,18 @@ export const useSettingsStore = create<SettingsState>()(
           }
         : {}),
 
-      ...(providerId === 'qwen-tts' &&
-      isQwenCatalogVoice(defaultVoice) &&
-      isQwenVoiceCloneModel(state.ttsProvidersConfig['qwen-tts']?.modelId)
-        ? {
-            ttsProvidersConfig: {
-              ...state.ttsProvidersConfig,
-              'qwen-tts': {
-                ...state.ttsProvidersConfig['qwen-tts'],
-                modelId: TTS_PROVIDERS['qwen-tts'].defaultModelId,
-              },
-            },
-          }
-        : {}),
-    };
-  }),
+      ...(providerId === 'browser-native-tts'
+  ? {
+      ttsEnabled: true,
+      ttsProvidersConfig: {
+        ...state.ttsProvidersConfig,
+        'browser-native-tts': {
+          ...state.ttsProvidersConfig['browser-native-tts'],
+          enabled: true,
+        },
+      },
+    }
+  : {}),
 
         setTTSVoice: (voice) =>
           set((state) => ({
