@@ -61,6 +61,34 @@ describe('resolveModel — per-stage resolution order', () => {
     expect(r.modelString).toBe('openai:gpt-5.4-mini');
   });
 
+  it('honors a manually selected Nemotron model over a Gemini DEFAULT_MODEL', async () => {
+    process.env.DEFAULT_MODEL = 'google:gemini-3.8-flash';
+    const { resolveModel } = await import('@/lib/server/resolve-model');
+
+    const r = await resolveModel({
+      stage: 'scene-content',
+      modelString: 'openrouter:nvidia/nemotron-3-ultra-550b-a55b:free',
+    });
+
+    expect(r.modelString).toBe('openrouter:nvidia/nemotron-3-ultra-550b-a55b:free');
+    expect(r.providerId).toBe('openrouter');
+    expect(r.modelId).toBe('nvidia/nemotron-3-ultra-550b-a55b:free');
+  });
+
+  it('keeps an explicit operator Gemini route over a manually selected Nemotron model', async () => {
+    process.env.MODEL_ROUTES = JSON.stringify({ 'scene-content': 'google:gemini-3.8-flash' });
+    const { resolveModel } = await import('@/lib/server/resolve-model');
+
+    const r = await resolveModel({
+      stage: 'scene-content',
+      modelString: 'openrouter:nvidia/nemotron-3-ultra-550b-a55b:free',
+    });
+
+    expect(r.modelString).toBe('google:gemini-3.8-flash');
+    expect(r.providerId).toBe('google');
+    expect(r.modelId).toBe('gemini-3.8-flash');
+  });
+
   it('uses the stage route over DEFAULT_MODEL', async () => {
     process.env.DEFAULT_MODEL = 'openai:gpt-5.4-mini';
     process.env.MODEL_ROUTES = JSON.stringify({ 'scene-content': 'openai:gpt-5.4' });

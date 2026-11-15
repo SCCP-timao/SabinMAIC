@@ -57,6 +57,22 @@ vi.mock('@/lib/ai/providers', () => ({
         { id: 'deepseek-v4-flash', name: 'DeepSeek V4 Flash' },
       ],
     },
+    openrouter: {
+      id: 'openrouter',
+      name: 'OpenRouter',
+      type: 'openai',
+      defaultBaseUrl: 'https://openrouter.ai/api/v1',
+      requiresApiKey: true,
+      icon: '/logos/openrouter.svg',
+      models: [
+        { id: 'deepseek/deepseek-v4-pro', name: 'DeepSeek V4 Pro' },
+        { id: 'deepseek/deepseek-v4-flash', name: 'DeepSeek V4 Flash' },
+        {
+          id: 'nvidia/nemotron-3-ultra-550b-a55b:free',
+          name: 'NVIDIA Nemotron 3 Ultra (free)',
+        },
+      ],
+    },
   },
 }));
 
@@ -677,6 +693,22 @@ describe('fetchServerProviders — provider availability sync', () => {
     // gpt-4o is still available — selection should be preserved
     expect(store.getState().providerId).toBe('openai');
     expect(store.getState().modelId).toBe('gpt-4o');
+  });
+
+  it('persists and preserves the selected OpenRouter Nemotron model across server sync', async () => {
+    const store = await getStore();
+    const modelId = 'nvidia/nemotron-3-ultra-550b-a55b:free';
+
+    store.getState().setModel('openrouter', modelId);
+    mockServerResponse({ providers: { openrouter: { models: [modelId] } } });
+    await store.getState().fetchServerProviders();
+
+    expect(store.getState()).toMatchObject({ providerId: 'openrouter', modelId });
+    expect(store.getState().providersConfig.openrouter.serverModels).toEqual([modelId]);
+    expect(store.getState().providersConfig.openrouter.models.map((model) => model.id)).toEqual([
+      modelId,
+    ]);
+    expect(await readPersistedState()).toMatchObject({ providerId: 'openrouter', modelId });
   });
 
   it('selects the server LLM model when provider fallback replaces the default provider', async () => {

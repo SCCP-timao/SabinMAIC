@@ -76,6 +76,22 @@ async function captureInjectedRequestBody(
 }
 
 describe('OpenAI provider defaults', () => {
+  it('keeps existing OpenRouter models and includes free Nemotron 3 Ultra metadata', () => {
+    const openrouter = getProvider('openrouter');
+
+    expect(openrouter?.models.map((model) => model.id)).toEqual([
+      'deepseek/deepseek-v4-pro',
+      'deepseek/deepseek-v4-flash',
+      'nvidia/nemotron-3-ultra-550b-a55b:free',
+    ]);
+    expect(openrouter?.models[2]).toMatchObject({
+      name: 'NVIDIA Nemotron 3 Ultra (free)',
+      contextWindow: 1000000,
+      outputWindow: 65536,
+      capabilities: { streaming: true, tools: true, vision: false },
+    });
+  });
+
   beforeEach(() => {
     vi.stubEnv('OPENAI_COMPAT_USE_STREAMING_CHAT', 'false');
     openAiMock.chat.mockClear();

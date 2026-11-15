@@ -89,6 +89,23 @@ describe('1.1.x authorized sets', () => {
     await resolveModel({ modelString: 'openai: allowed\u00a0' });
     expect(mocks.getModel).toHaveBeenCalledWith(expect.objectContaining({ modelId: 'allowed' }));
   });
+  it('authorizes the full OpenRouter Nemotron free ID and does not confuse it with the paid ID', async () => {
+    vi.stubEnv('OPENROUTER_API_KEY', 'server');
+    vi.stubEnv('OPENROUTER_MODELS', 'nvidia/nemotron-3-ultra-550b-a55b:free');
+    const { resolveModel } = await import('@/lib/server/resolve-model');
+
+    await resolveModel({ modelString: 'openrouter:nvidia/nemotron-3-ultra-550b-a55b:free' });
+    expect(mocks.getModel).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        providerId: 'openrouter',
+        modelId: 'nvidia/nemotron-3-ultra-550b-a55b:free',
+        apiKey: 'server',
+      }),
+    );
+    await expect(
+      resolveModel({ modelString: 'openrouter:nvidia/nemotron-3-ultra-550b-a55b' }),
+    ).rejects.toMatchObject(denied);
+  });
   it('does not let request stage routes, empty keys or other providers expand the set', async () => {
     vi.stubEnv('OPENAI_API_KEY', 'server');
     vi.stubEnv('DEFAULT_MODEL', 'anthropic:secret');

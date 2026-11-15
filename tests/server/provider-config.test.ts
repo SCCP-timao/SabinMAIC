@@ -265,13 +265,32 @@ providers:
 
     it('maps OpenRouter env prefix to provider ID', async () => {
       vi.stubEnv('OPENROUTER_API_KEY', 'sk-openrouter');
-      vi.stubEnv('OPENROUTER_MODELS', 'deepseek/deepseek-v4-pro,deepseek/deepseek-v4-flash');
+      vi.stubEnv(
+        'OPENROUTER_MODELS',
+        'deepseek/deepseek-v4-pro,deepseek/deepseek-v4-flash,nvidia/nemotron-3-ultra-550b-a55b:free',
+      );
       const { getServerProviders } = await import('@/lib/server/provider-config');
       const providers = getServerProviders();
 
       expect(providers.openrouter.models).toEqual([
         'deepseek/deepseek-v4-pro',
         'deepseek/deepseek-v4-flash',
+        'nvidia/nemotron-3-ultra-550b-a55b:free',
+      ]);
+    });
+
+    it('loads the full free Nemotron ID from OpenRouter YAML models', async () => {
+      yamlOverride = `
+providers:
+  openrouter:
+    apiKey: sk-yaml
+    models:
+      - nvidia/nemotron-3-ultra-550b-a55b:free
+`;
+      const { getServerProviders } = await import('@/lib/server/provider-config');
+
+      expect(getServerProviders().openrouter.models).toEqual([
+        'nvidia/nemotron-3-ultra-550b-a55b:free',
       ]);
     });
 

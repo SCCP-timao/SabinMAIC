@@ -716,7 +716,7 @@ function HomePage() {
       {/* ═══ Top-right pill (unchanged) ═══ */}
       <div
         ref={toolbarRef}
-        className="fixed top-4 right-4 z-50 flex items-center gap-1 bg-white/60 dark:bg-gray-800/60 backdrop-blur-md px-2 py-1.5 rounded-full border border-gray-100/50 dark:border-gray-700/50 shadow-sm"
+        className="fixed top-[max(1rem,env(safe-area-inset-top))] right-[max(1rem,env(safe-area-inset-right))] z-50 flex items-center gap-1 bg-white/60 dark:bg-gray-800/60 backdrop-blur-md px-2 py-1.5 rounded-full border border-gray-100/50 dark:border-gray-700/50 shadow-sm"
       >
         {/* Language Selector */}
         <LanguageSwitcher onOpen={() => setThemeOpen(false)} />
@@ -729,7 +729,7 @@ function HomePage() {
             onClick={() => {
               setThemeOpen(!themeOpen);
             }}
-            className="p-2 rounded-full text-gray-400 dark:text-gray-500 hover:bg-white dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200 hover:shadow-sm transition-all"
+            className="flex items-center justify-center size-11 md:size-8 rounded-full text-gray-400 dark:text-gray-500 hover:bg-white dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200 hover:shadow-sm transition-all"
           >
             {theme === 'light' && <Sun className="w-4 h-4" />}
             {theme === 'dark' && <Moon className="w-4 h-4" />}
@@ -789,7 +789,7 @@ function HomePage() {
         <div className="relative">
           <button
             onClick={() => setSettingsOpen(true)}
-            className="p-2 rounded-full text-gray-400 dark:text-gray-500 hover:bg-white dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200 hover:shadow-sm transition-all group"
+            className="flex items-center justify-center size-11 md:size-8 rounded-full text-gray-400 dark:text-gray-500 hover:bg-white dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200 hover:shadow-sm transition-all group"
           >
             <Settings className="w-4 h-4 group-hover:rotate-90 transition-transform duration-500" />
           </button>

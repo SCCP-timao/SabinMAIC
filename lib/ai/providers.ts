@@ -1309,6 +1309,13 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
         outputWindow: 131072,
         capabilities: { streaming: true, tools: true, vision: false },
       },
+      {
+        id: 'nvidia/nemotron-3-ultra-550b-a55b:free',
+        name: 'NVIDIA Nemotron 3 Ultra (free)',
+        contextWindow: 1000000,
+        outputWindow: 65536,
+        capabilities: { streaming: true, tools: true, vision: false },
+      },
     ],
   },
 
