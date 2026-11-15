@@ -790,6 +790,8 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
       }
 
       store.getState().setGenerationStatus('generating');
+      const generationStartedAt = Date.now();
+      const phaseDurations = { content: 0, actions: 0, tts: 0 };
 
       // Determine pending outlines
       const completedOrders = new Set(scenes.map((s) => s.order));
@@ -855,21 +857,32 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
       // threading and the pause-on-failure UX. With parallelism off this is exactly
       // the original one-at-a-time loop.
       try {
-        const fetchContent = (outline: SceneOutline) =>
-          fetchSceneContent(
-            {
-              outline,
-              allOutlines: outlines,
-              stageId: stage.id,
-              pdfImages: params.pdfImages,
-              imageMapping: params.imageMapping,
-              stageInfo: params.stageInfo,
-              agents: params.agents,
-              languageDirective: params.languageDirective,
-              ...(params.taskEngineMode ? { requirements: { taskEngineMode: true } } : {}),
-            },
-            signal,
-          );
+        const fetchContent = async (outline: SceneOutline) => {
+          const startedAt = Date.now();
+          try {
+            return await fetchSceneContent(
+              {
+                outline,
+                allOutlines: outlines,
+                stageId: stage.id,
+                pdfImages: params.pdfImages,
+                imageMapping: params.imageMapping,
+                stageInfo: params.stageInfo,
+                agents: params.agents,
+                languageDirective: params.languageDirective,
+                ...(params.taskEngineMode ? { requirements: { taskEngineMode: true } } : {}),
+              },
+              signal,
+            );
+          } finally {
+            const durationMs = Date.now() - startedAt;
+            phaseDurations.content += durationMs;
+            log.debug('Scene content generation finished', {
+              order: outline.order,
+              durationMs,
+            });
+          }
+        };
 
         // Pre-warm content fetches (<= parallelConcurrency in flight), keyed by
         // outline id. Each promise resolves to a result and never rejects, so an
@@ -952,6 +965,7 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
 
           // Step 2: Generate actions + assemble scene
           options.onPhaseChange?.('actions', outline);
+          const actionsStartedAt = Date.now();
           const actionsResult = await fetchSceneActions(
             {
               outline: contentResult.effectiveOutline || outline,
@@ -965,6 +979,12 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
             },
             signal,
           );
+          const actionsDurationMs = Date.now() - actionsStartedAt;
+          phaseDurations.actions += actionsDurationMs;
+          log.debug('Scene actions generation finished', {
+            order: outline.order,
+            durationMs: actionsDurationMs,
+          });
 
           if (actionsResult.success && actionsResult.scene) {
             const scene = actionsResult.scene;
@@ -979,11 +999,18 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
                 settings.ttsProvidersConfig?.[settings.ttsProviderId],
               )
             ) {
+              const ttsStartedAt = Date.now();
               const ttsResult = await generateTTSForScene(
                 scene,
                 params.languageDirective || params.stageInfo.language,
                 signal,
               );
+              const ttsDurationMs = Date.now() - ttsStartedAt;
+              phaseDurations.tts += ttsDurationMs;
+              log.debug('Scene narration generation finished', {
+                order: outline.order,
+                durationMs: ttsDurationMs,
+              });
               if (!ttsResult.success) {
                 if (abortRef.current || store.getState().generationEpoch !== startEpoch) {
                   pausedByFailureOrAbort = true;
@@ -1030,6 +1057,14 @@ export function useSceneGenerator(options: UseSceneGeneratorOptions = {}) {
             store.getState().setGenerationStatus('completed');
             store.getState().setGeneratingOutlines([]);
             store.getState().setGenerationComplete(true);
+            log.info('Course scene generation finished', {
+              durationMs: Date.now() - generationStartedAt,
+              sceneCount: pending.length,
+              contentDurationMs: phaseDurations.content,
+              actionsDurationMs: phaseDurations.actions,
+              ttsDurationMs: phaseDurations.tts,
+              contentConcurrency: useParallelContent ? parallelConcurrency : 1,
+            });
             options.onComplete?.();
           }
         }

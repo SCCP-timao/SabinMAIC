@@ -553,6 +553,7 @@ function GenerationPreviewContent() {
       const outlineStepIdx = activeSteps.findIndex((s) => s.id === 'outline');
       setCurrentStepIndex(outlineStepIdx >= 0 ? outlineStepIdx : 0);
       if (!outlines || outlines.length === 0) {
+        const outlineStartedAt = Date.now();
         log.debug('=== Generating outlines (SSE) ===');
         setStreamingOutlines([]);
         setIsOutlineStreaming(true);
@@ -626,6 +627,10 @@ function GenerationPreviewContent() {
                           setStreamingOutlines([]);
                           setStatusMessage(t('generation.outlineRetrying'));
                         } else if (evt.type === 'done') {
+                          log.info('Outline generation finished', {
+                            durationMs: Date.now() - outlineStartedAt,
+                            sceneCount: (evt.outlines || collected).length,
+                          });
                           directive = evt.languageDirective || directive;
                           resolve({
                             outlines: evt.outlines || collected,

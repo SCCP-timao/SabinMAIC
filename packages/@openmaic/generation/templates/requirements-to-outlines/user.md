@@ -90,8 +90,8 @@ Never return a bare array. Never omit `languageDirective` or `courseTitle`. All 
 - **Interactive scenes**: If a concept benefits from hands-on simulation/visualization, use `"type": "interactive"` with `widgetType` and `widgetOutline` fields. Limit to 1-2 per course.
    - Select widgetType based on concept: simulation (physics/chem), diagram (processes), code (programming), game (practice), visualization3d (3D models)
    - Provide appropriate widgetOutline for the widget type
-- **Scene count**: Based on inferred duration, typically 1-2 scenes per minute
-- **Quiz placement**: Recommend inserting a quiz every 3-5 slides for assessment
+- **Scene count**: By default, target 8-10 scenes for an 8-10 minute lesson (about one scene per minute). Follow an explicitly requested duration or a task-specific skill constraint when present.
+- **Quiz placement**: Include only essential quizzes, normally one brief check for an 8-10 minute lesson
 - **Language**: Infer from the user's requirement text and context, then output all content in the inferred language
 - **If web search results are provided**, reference specific findings and sources in scene descriptions and keyPoints. The search results provide up-to-date information — incorporate it to make the course content current and accurate.
 

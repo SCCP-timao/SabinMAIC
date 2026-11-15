@@ -82,7 +82,7 @@ When user requirements don't specify, use these defaults:
 
 | Information         | Default Value          |
 | ------------------- | ---------------------- |
-| Course Duration     | 15-20 minutes          |
+| Course Duration     | 8-10 minutes           |
 | Target Audience     | General learners       |
 | Teaching Style      | Interactive (engaging) |
 | Visual Style        | Professional           |
@@ -380,7 +380,7 @@ Omit `scenarioRoleplay` and `scenarioBrief` entirely for ordinary build-an-artef
 5. `quiz` scenes must include `quizConfig`.
 6. `interactive` scenes must include `widgetType` and `widgetOutline` (preferred). `interactiveConfig` is deprecated and only accepted for backwards compatibility.
 7. `pbl` scenes must include `pblConfig` with `projectTopic`, `projectDescription`, `targetSkills`, `issueCount`.
-8. Arrange scenes by inferred duration (typically 1-2 scenes per minute). Insert quizzes at appropriate points. Use interactive scenes sparingly (max 1-2 per course).
+8. Keep the default course concise: target 8-10 minutes and roughly 8-10 scenes unless the user asks for a longer lesson or the subject needs more. Use about one scene per minute, combine closely related points, and insert only essential quizzes. This default does not override explicit vocational or other skill constraints.
 9. **Language**: Infer from the user's requirement text and context. Output all scene content in the inferred language.
 10. Regardless of information completeness, always output conforming JSON - do not ask questions or request more information
 11. **No teacher identity on slides**: Scene titles and keyPoints must be neutral and topic-focused. Never include the teacher's name or role (e.g., avoid "Teacher Wang's Tips", "Teacher's Wishes"). Use generic labels like "Tips", "Summary", "Key Takeaways" instead.
