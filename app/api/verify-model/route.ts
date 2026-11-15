@@ -3,7 +3,10 @@ import { createLogger } from '@/lib/logger';
 import { modelAuthorizationResponse, apiError, apiSuccess } from '@/lib/server/api-response';
 import { resolveModel } from '@/lib/server/resolve-model';
 import { callLLM } from '@/lib/ai/llm';
-import { upstreamHttpStatus } from '@/lib/server/llm-error-response';
+import {
+  isInvalidProviderCredentialsError,
+  upstreamHttpStatus,
+} from '@/lib/server/llm-error-response';
 const log = createLogger('Verify Model');
 
 export async function POST(req: NextRequest) {
@@ -64,7 +67,7 @@ export async function POST(req: NextRequest) {
     // and never returned.
     const status = upstreamHttpStatus(error);
     let errorMessage: string;
-    if (status === 401 || status === 403) {
+    if (status === 401 || status === 403 || isInvalidProviderCredentialsError(error)) {
       errorMessage = 'API key is invalid or expired';
     } else if (status === 404) {
       errorMessage = 'Model not found or API endpoint error';

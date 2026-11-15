@@ -146,8 +146,13 @@ function GenerationPreviewContent() {
   const isReviewingOutlines = session?.previewPhase === 'review';
 
   const sceneGenerationErrorMessage = (failure: SceneGenerationFailure): string => {
+    if (failure.errorCode === 'PROVIDER_DISABLED') {
+      return failure.error || t('generation.sceneGenerateFailed');
+    }
+
     if (
       failure.errorCode === 'MISSING_API_KEY' ||
+      failure.errorCode === 'INVALID_CREDENTIALS' ||
       failure.statusCode === 401 ||
       failure.statusCode === 403
     ) {
@@ -584,7 +589,15 @@ function GenerationPreviewContent() {
             .then((res) => {
               if (!res.ok) {
                 return res.json().then((d) => {
-                  reject(new Error(d.error || t('generation.outlineGenerateFailed')));
+                  reject(
+                    new Error(
+                      sceneGenerationErrorMessage({
+                        error: d.error,
+                        errorCode: d.errorCode,
+                        statusCode: res.status,
+                      }) || t('generation.outlineGenerateFailed'),
+                    ),
+                  );
                 });
               }
 
@@ -637,7 +650,15 @@ function GenerationPreviewContent() {
                           });
                           return;
                         } else if (evt.type === 'error') {
-                          reject(new Error(evt.error));
+                          reject(
+                            new Error(
+                              sceneGenerationErrorMessage({
+                                error: evt.error,
+                                errorCode: evt.errorCode,
+                                statusCode: evt.statusCode,
+                              }),
+                            ),
+                          );
                           return;
                         }
                       } catch (e) {

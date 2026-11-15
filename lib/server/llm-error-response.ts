@@ -26,6 +26,50 @@ export function upstreamHttpStatus(error: unknown): number | undefined {
   return statusFromError(error);
 }
 
+/**
+ * Google can report an invalid API key as HTTP 400 with API_KEY_INVALID rather
+ * than the 401/403 used by most providers. Inspect only for classification;
+ * provider response bodies are never returned to the client.
+ */
+export function isInvalidProviderCredentialsError(
+  error: unknown,
+  seen = new Set<unknown>(),
+): boolean {
+  if (!error || seen.has(error)) return false;
+  seen.add(error);
+
+  if (APICallError.isInstance(error)) {
+    const body = error.responseBody ?? '';
+    if (
+      /\bAPI_KEY_INVALID\b|api key (?:is )?not valid|invalid api key|api key (?:is )?(?:invalid|expired|rejected)/i.test(
+        body,
+      )
+    ) {
+      return true;
+    }
+  }
+
+  if (RetryError.isInstance(error)) {
+    return (
+      isInvalidProviderCredentialsError(error.lastError, seen) ||
+      error.errors.some((nested) => isInvalidProviderCredentialsError(nested, seen))
+    );
+  }
+
+  if (isRecord(error)) {
+    return (
+      isInvalidProviderCredentialsError(error.cause, seen) ||
+      isInvalidProviderCredentialsError(error.lastError, seen)
+    );
+  }
+
+  return false;
+}
+
+function isMissingProviderApiKeyError(error: unknown): boolean {
+  return error instanceof Error && /API key required for provider:/i.test(error.message);
+}
+
 function statusFromError(error: unknown, seen = new Set<unknown>()): number | undefined {
   if (!error || seen.has(error)) return undefined;
   seen.add(error);
@@ -68,6 +112,19 @@ function messageForStatus(status: number): string {
 export function llmApiError(error: unknown) {
   const refusal = modelAuthorizationResponse(error);
   if (refusal) return refusal;
+
+  if (isMissingProviderApiKeyError(error)) {
+    return apiError('MISSING_API_KEY', 401, 'API key is not configured for the selected provider.');
+  }
+
+  if (isInvalidProviderCredentialsError(error)) {
+    return apiError(
+      'INVALID_CREDENTIALS',
+      401,
+      'The model provider rejected its API key. Check the provider credentials.',
+    );
+  }
+
   const status = statusFromError(error);
   if (status === undefined) {
     return apiError('INTERNAL_ERROR', 500, 'Scene generation failed. Please try again.');

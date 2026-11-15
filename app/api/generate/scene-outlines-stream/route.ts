@@ -34,7 +34,12 @@ import type {
   SceneOutline,
   ImageMapping,
 } from '@/lib/types/generation';
-import { modelAuthorizationResponse, apiError } from '@/lib/server/api-response';
+import { modelAuthorizationResponse } from '@/lib/server/api-response';
+import {
+  isInvalidProviderCredentialsError,
+  llmApiError,
+  upstreamHttpStatus,
+} from '@/lib/server/llm-error-response';
 import { createLogger } from '@/lib/logger';
 import { resolveModelFromRequest } from '@/lib/server/resolve-model';
 import { sortDocumentImagesForVision } from '@/lib/document/bundle';
@@ -515,6 +520,8 @@ export async function POST(req: NextRequest) {
           let languageDirective: string | null = null;
           let courseTitle: string | null = null;
           let lastError: string | undefined;
+          let lastErrorCode: string | undefined;
+          let lastStatusCode: number | undefined;
 
           for (let attempt = 1; attempt <= MAX_STREAM_RETRIES + 1; attempt++) {
             try {
@@ -637,6 +644,27 @@ export async function POST(req: NextRequest) {
                 stopHeartbeat();
                 return;
               }
+              const status = upstreamHttpStatus(error);
+              if (isInvalidProviderCredentialsError(error)) {
+                lastError =
+                  'The model provider rejected its API key. Check the provider credentials.';
+                lastErrorCode = 'INVALID_CREDENTIALS';
+                lastStatusCode = 401;
+                break;
+              }
+              if (status === 429) {
+                lastError = 'Upstream rate limit reached. Please try again shortly.';
+                lastErrorCode = 'RATE_LIMITED';
+                lastStatusCode = 429;
+                break;
+              }
+              if (status === 401 || status === 403) {
+                lastError = 'Upstream authentication or authorization failed.';
+                lastErrorCode = 'UPSTREAM_ERROR';
+                lastStatusCode = status;
+                break;
+              }
+
               lastError = error instanceof Error ? error.message : String(error);
               log.warn(
                 `Outlines stream error detail (attempt ${attempt}/${MAX_STREAM_RETRIES + 1}): ${lastError}`,
@@ -678,13 +706,20 @@ export async function POST(req: NextRequest) {
             const errorEvent = JSON.stringify({
               type: 'error',
               error: lastError || 'Failed to generate outlines',
+              ...(lastErrorCode ? { errorCode: lastErrorCode } : {}),
+              ...(lastStatusCode ? { statusCode: lastStatusCode } : {}),
             });
             controller.enqueue(encoder.encode(`data: ${errorEvent}\n\n`));
           }
         } catch (error) {
+          const refusal = modelAuthorizationResponse(error);
+          const failureResponse = refusal ?? llmApiError(error);
+          const failure = await failureResponse.json();
           const errorEvent = JSON.stringify({
             type: 'error',
-            error: error instanceof Error ? error.message : String(error),
+            error: failure.error,
+            errorCode: failure.errorCode,
+            statusCode: failureResponse.status,
           });
           controller.enqueue(encoder.encode(`data: ${errorEvent}\n\n`));
         } finally {
@@ -713,6 +748,6 @@ export async function POST(req: NextRequest) {
       `Outline streaming failed [requirement="${requirementSnippet ?? 'unknown'}...", model=${resolvedModelString ?? 'unknown'}]:`,
       error,
     );
-    return apiError('INTERNAL_ERROR', 500, error instanceof Error ? error.message : String(error));
+    return llmApiError(error);
   }
 }
